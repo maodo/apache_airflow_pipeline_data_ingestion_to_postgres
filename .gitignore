@@ -1,2 +1,3 @@
 __pycache__
-airlow-env
+airflow-env/
+airflow-env

@@ -1,9 +1,9 @@
 import pandas as pd
 from airflow.operators.empty import EmptyOperator
 from airflow.operators.python import PythonOperator
-import psycopg2
 from airflow import DAG
 from datetime import datetime, timedelta
+from database import Database
 
 # Use the docker information 
 db_config = {
@@ -14,32 +14,13 @@ db_config = {
     "password":"pass123"
 }
 
+db = Database(**db_config)
+
 csv_file_path = '/opt/airflow/employees.csv'
 csv_cleaned_file_path = '/opt/airflow/cleaned_employees.csv'
 output = './cleaned_employees.csv'
 
-def connect_to_database():
-    try:
-        conn = psycopg2.connect(**db_config)
-        print("Connected to the database successfully!")
-        # Create a cursor object
-        cursor = conn.cursor()
-        # Example: Execute a query
-        cursor.execute("SELECT version();")
-        version = cursor.fetchone()
-        print(f"PostgreSQL version: {version[0]}")
-        cursor.close()
-        return conn
-    except Exception as e:
-        cursor.close()
-        conn.close()
-        print(f"Error connecting to database : {e}")
-def close_connection(connection):
-    try:
-        connection.close()
-        print(f"Connection closed successfully !")
-    except Exception as e:
-        print(f"Error closing connection : {e}")
+
 
 def clean_phone_number(phone_number):
     new_phone = phone_number.split('x',1)[0].replace('.','-').replace('+','00').replace("(","").replace(")","-")
@@ -57,7 +38,8 @@ def clean_data():
     print("Employee data succesfully cleaned !")
 
 def ingest_data():
-    conn = connect_to_database()
+    db.connect()
+    conn = db.conn
     cursor = conn.cursor()
     with open(csv_cleaned_file_path, 'r') as file:
         next(file)
@@ -65,7 +47,7 @@ def ingest_data():
     conn.commit()
     print("Data ingested successfully using COPY!")
     cursor.close()
-    close_connection(conn)
+    db.close()
 
 with DAG(
     dag_id='employee_table_ingestion',

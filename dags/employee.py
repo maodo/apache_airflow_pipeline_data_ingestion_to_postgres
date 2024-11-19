@@ -1,4 +1,3 @@
-
 class Employee(object):
     def __init__(self,employee_id,first_name, last_name, phone_number, address,email_address, position, salary):
         super(object, self).__init__()
